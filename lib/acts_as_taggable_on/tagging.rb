@@ -32,6 +32,11 @@ module ActsAsTaggableOn
 
     def remove_unused_tags
       if ActsAsTaggableOn.remove_unused_tags
+        if (ActsAsTaggableOn.remove_unused_tags_by_context || []).any?
+          unless ActsAsTaggableOn.remove_unused_tags_by_context.member?(context.to_s)
+            return
+          end
+        end
         if ActsAsTaggableOn.tags_counter
           tag.destroy if tag.reload.taggings_count.zero?
         else

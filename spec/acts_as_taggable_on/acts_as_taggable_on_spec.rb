@@ -3,6 +3,11 @@ require 'spec_helper'
 
 describe 'Acts As Taggable On' do
 
+  after do
+    ActsAsTaggableOn.remove_unused_tags = false
+    ActsAsTaggableOn.remove_unused_tags_by_context = []
+  end
+
   it "should provide a class method 'taggable?' that is false for untaggable models" do
     expect(UntaggableModel).to_not be_taggable
   end
@@ -282,4 +287,52 @@ describe 'Acts As Taggable On' do
     end
   end
 
+  describe '@@remove_unused_tags_by_context' do
+    before do
+      @taggable = TaggableModel.create(name: 'Bob Jones')
+      @tag = ActsAsTaggableOn::Tag.create(name: 'awesome')
+
+      @tagging = ActsAsTaggableOn::Tagging.create(taggable: @taggable, tag: @tag, context: 'tags')
+    end
+
+    after do
+      ActsAsTaggableOn.remove_unused_tags_by_context = []
+    end
+
+    context 'if set to "tags"' do
+      before do
+        ActsAsTaggableOn.remove_unused_tags = true
+        ActsAsTaggableOn.remove_unused_tags_by_context = %w( tags )
+      end
+
+      it 'should remove unused tags after removing taggings' do
+        @tagging.destroy
+        expect(ActsAsTaggableOn::Tag.find_by_name('awesome')).to be_nil
+      end
+    end
+
+    context 'if set to "anythine_other_than_tags"' do
+      before do
+        ActsAsTaggableOn.remove_unused_tags = true
+        ActsAsTaggableOn.remove_unused_tags_by_context = %w( anything_other )
+      end
+
+      it 'should not remove unused tags after removing taggings' do
+        @tagging.destroy
+        expect(ActsAsTaggableOn::Tag.find_by_name('awesome')).to eq(@tag)
+      end
+    end
+
+    context 'if set to []' do
+      before do
+        ActsAsTaggableOn.remove_unused_tags = true
+        ActsAsTaggableOn.remove_unused_tags_by_context = []
+      end
+
+      it 'should remove unused tags after removing taggings' do
+        @tagging.destroy
+        expect(ActsAsTaggableOn::Tag.find_by_name('awesome')).to be_nil
+      end
+    end
+  end
 end

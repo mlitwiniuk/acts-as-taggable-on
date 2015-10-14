@@ -49,6 +49,34 @@ describe ActsAsTaggableOn::Tagging do
     ActsAsTaggableOn.remove_unused_tags = previous_setting
   end
 
+  it 'should destroy unused tags for given contexts after tagging destroyed' do
+    previous_setting = ActsAsTaggableOn.remove_unused_tags
+    previous_setting_context = ActsAsTaggableOn.remove_unused_tags_by_context.dup
+    ActsAsTaggableOn.remove_unused_tags = true
+    ActsAsTaggableOn.remove_unused_tags_by_context = %w( tags )
+    ActsAsTaggableOn::Tag.destroy_all
+    @taggable = TaggableModel.create(name: 'Bob Jones')
+    @taggable.update_attribute :tag_list, 'aaa,bbb,ccc'
+    @taggable.update_attribute :tag_list, ''
+    expect(ActsAsTaggableOn::Tag.count).to eql(0)
+    ActsAsTaggableOn.remove_unused_tags = previous_setting
+    ActsAsTaggableOn.remove_unused_tags_by_context = previous_setting_context
+  end
+
+  it 'should no destroy unused tags if context does not match after tagging destroyed' do
+    previous_setting = ActsAsTaggableOn.remove_unused_tags
+    previous_setting_context = ActsAsTaggableOn.remove_unused_tags_by_context.dup
+    ActsAsTaggableOn.remove_unused_tags = true
+    ActsAsTaggableOn.remove_unused_tags_by_context = %w( something_stupid )
+    ActsAsTaggableOn::Tag.destroy_all
+    @taggable = TaggableModel.create(name: 'Bob Jones')
+    @taggable.update_attribute :tag_list, 'aaa,bbb,ccc'
+    @taggable.update_attribute :tag_list, ''
+    expect(ActsAsTaggableOn::Tag.count).to eql(3)
+    ActsAsTaggableOn.remove_unused_tags = previous_setting
+    ActsAsTaggableOn.remove_unused_tags_by_context = previous_setting_context
+  end
+
   pending 'context scopes' do
     describe '.by_context'
 
